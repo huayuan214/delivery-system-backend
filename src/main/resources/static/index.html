@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <title>校园闪送抢单大厅</title>
+    <!-- 引入 Vue 3 -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f9; }
+        .container { max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+        .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
+        .order-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
+        .order-info { font-size: 14px; color: #666; }
+        .btn { padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { background: #45a049; }
+        .tag { background: #e3f2fd; color: #1976d2; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
+    </style>
+</head>
+<body>
+<div id="app" class="container">
+    <div class="header">
+        <h2>📦 闪送抢单大厅</h2>
+        <div>
+            当前骑手：<b>骑手 #{{ riderId }}</b>
+            <button class="btn" style="margin-left: 10px; background: #ff9800;" @click="createOrder">模拟用户下单</button>
+        </div>
+    </div>
+
+    <h3>待接单列表</h3>
+    <div v-if="orders.length === 0" style="color: #999;">暂无待接订单...</div>
+
+    <div v-for="order in orders" :key="order.id" class="order-card">
+        <div>
+            <strong>订单 #{{ order.id }}</strong>
+            <span class="tag">{{ order.content }}</span>
+            <div class="order-info">下单时间：{{ order.createTime }}</div>
+        </div>
+        <button class="btn" @click="grabOrder(order.id)">立即抢单</button>
+    </div>
+</div>
+
+<script>
+    const { createApp, ref, onMounted } = Vue;
+
+    createApp({
+        setup() {
+            const orders = ref([]);
+            const riderId = ref(Math.floor(Math.random() * 100) + 1); // 随机生成一个骑手号
+            const baseUrl = 'http://localhost:8080/order';
+
+            // 获取待接单列表
+            const fetchOrders = async () => {
+                try {
+                    const res = await fetch(`${baseUrl}/list`);
+                    orders.value = await res.json();
+                } catch (e) {
+                    console.error("请求失败", e);
+                }
+            };
+
+            // 抢单
+            const grabOrder = async (orderId) => {
+                try {
+                    const res = await fetch(`${baseUrl}/grab/${orderId}?riderId=${riderId.value}`, { method: 'POST' });
+                    const msg = await res.text();
+                    alert(msg);
+                    fetchOrders(); // 抢完刷新列表
+                } catch (e) {
+                    console.error("请求失败", e);
+                }
+            };
+
+            // 模拟下单
+            const createOrder = async () => {
+                const content = prompt("请输入跑腿内容：", "取快递");
+                if (!content) return;
+                try {
+                    const res = await fetch(`${baseUrl}/create?userId=1&content=${content}`, { method: 'POST' });
+                    const msg = await res.text();
+                    alert(msg);
+                    fetchOrders(); // 下完单刷新列表
+                } catch (e) {
+                    console.error("请求失败", e);
+                }
+            };
+
+            // 页面加载时请求一次
+            onMounted(() => {
+                fetchOrders();
+                // 每 3 秒自动刷新一次列表，模拟实时效果
+                setInterval(fetchOrders, 3000);
+            });
+
+            return { orders, riderId, grabOrder, createOrder };
+        }
+    }).mount('#app');
+</script>
+</body>
+</html>

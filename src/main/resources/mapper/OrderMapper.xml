@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.delivery.delivery.mapper.OrderMapper">
+
+    <insert id="insert" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO orders (user_id, content, status, category)
+        VALUES (#{userId}, #{content}, 0, #{category})
+    </insert>
+
+    <select id="selectById" resultType="com.delivery.delivery.entity.Order">
+        SELECT * FROM orders WHERE id = #{id}
+    </select>
+
+    <select id="selectPendingList" resultType="com.delivery.delivery.entity.Order">
+        SELECT * FROM orders WHERE status = 0 ORDER BY create_time DESC
+    </select>
+
+    <update id="grabOrder">
+        UPDATE orders SET rider_id = #{riderId}, status = 1
+        WHERE id = #{orderId} AND status = 0
+    </update>
+
+    <update id="updateById">
+        UPDATE orders SET rider_id = #{riderId}, status = #{status} WHERE id = #{id}
+    </update>
+
+
+    <update id="completeOrder">
+        UPDATE orders SET status = 2
+        WHERE id = #{orderId} AND rider_id = #{riderId} AND status = 1
+    </update>
+
+    <select id="selectTimeoutOrders" resultType="java.lang.Long">
+        SELECT id FROM orders
+        WHERE status = 1
+        AND update_time &lt; DATE_SUB(NOW(), INTERVAL 30 SECOND)
+    </select>
+
+    <!-- 在 OrderMapper.xml 里 -->
+    <update id="releaseOrder">
+        UPDATE orders SET status = 0, rider_id = NULL
+        WHERE id = #{orderId} AND status = 1
+    </update>
+
+
+</mapper>
