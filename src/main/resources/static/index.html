@@ -11,8 +11,11 @@
         .header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 20px; }
         .order-card { border: 1px solid #ddd; padding: 15px; margin-bottom: 10px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; background: #fafafa; }
         .order-info { font-size: 14px; color: #666; }
-        .btn { padding: 8px 16px; background: #4CAF50; color: white; border: none; border-radius: 4px; cursor: pointer; }
-        .btn:hover { background: #45a049; }
+        .btn { padding: 8px 16px; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        .btn:hover { opacity: 0.9; }
+        .btn-green { background: #4CAF50; }
+        .btn-orange { background: #ff9800; }
+        .btn-purple { background: #8e44ad; }
         .tag { background: #e3f2fd; color: #1976d2; padding: 2px 6px; border-radius: 4px; font-size: 12px; }
     </style>
 </head>
@@ -22,7 +25,9 @@
         <h2>📦 闪送抢单大厅</h2>
         <div>
             当前骑手：<b>骑手 #{{ riderId }}</b>
-            <button class="btn" style="margin-left: 10px; background: #ff9800;" @click="createOrder">模拟用户下单</button>
+            <button class="btn btn-orange" style="margin-left: 10px;" @click="createOrder">模拟用户下单</button>
+            <!-- 新增的 AI 按钮 -->
+            <button class="btn btn-purple" style="margin-left: 10px;" @click="aiOrder">✨ AI 智能下单</button>
         </div>
     </div>
 
@@ -32,10 +37,11 @@
     <div v-for="order in orders" :key="order.id" class="order-card">
         <div>
             <strong>订单 #{{ order.id }}</strong>
-            <span class="tag">{{ order.content }}</span>
+            <span class="tag" style="margin-left: 10px; color: #d35400; background: #fce4d6;">{{ order.category }}</span>
+            <div class="order-info" style="margin-top: 5px;">内容：{{ order.content }}</div>
             <div class="order-info">下单时间：{{ order.createTime }}</div>
         </div>
-        <button class="btn" @click="grabOrder(order.id)">立即抢单</button>
+        <button class="btn btn-green" @click="grabOrder(order.id)">立即抢单</button>
     </div>
 </div>
 
@@ -45,7 +51,7 @@
     createApp({
         setup() {
             const orders = ref([]);
-            const riderId = ref(Math.floor(Math.random() * 100) + 1); // 随机生成一个骑手号
+            const riderId = ref(Math.floor(Math.random() * 100) + 1);
             const baseUrl = 'http://localhost:8080/order';
 
             // 获取待接单列表
@@ -64,34 +70,50 @@
                     const res = await fetch(`${baseUrl}/grab/${orderId}?riderId=${riderId.value}`, { method: 'POST' });
                     const msg = await res.text();
                     alert(msg);
-                    fetchOrders(); // 抢完刷新列表
+                    fetchOrders();
                 } catch (e) {
                     console.error("请求失败", e);
                 }
             };
 
-            // 模拟下单
+            // 模拟普通下单
             const createOrder = async () => {
                 const content = prompt("请输入跑腿内容：", "取快递");
                 if (!content) return;
                 try {
-                    const res = await fetch(`${baseUrl}/create?userId=1&content=${content}`, { method: 'POST' });
+                    const res = await fetch(`${baseUrl}/create?userId=1&content=${encodeURIComponent(content)}`, { method: 'POST' });
                     const msg = await res.text();
                     alert(msg);
-                    fetchOrders(); // 下完单刷新列表
+                    fetchOrders();
                 } catch (e) {
                     console.error("请求失败", e);
                 }
             };
 
-            // 页面加载时请求一次
+            // 新增：AI 智能下单
+            const aiOrder = async () => {
+                const msg = prompt("请用自然语言告诉 AI 你需要什么跑腿服务：", "帮我去丰巢拿个顺丰快递，顺便买一杯冰美式");
+                if (!msg) return;
+                // 提示正在思考
+                alert("AI 正在思考并自动执行，请稍等几秒钟...");
+                try {
+                    // 请求 ai-chat 接口
+                    const res = await fetch(`${baseUrl}/ai-chat?message=${encodeURIComponent(msg)}`, { method: 'POST' });
+                    const result = await res.text();
+                    alert(result); // 弹出大模型调用工具后的返回结果
+                    fetchOrders(); // 刷新列表
+                } catch (e) {
+                    console.error("请求失败", e);
+                    alert("AI 请求失败，请检查控制台");
+                }
+            };
+
             onMounted(() => {
                 fetchOrders();
-                // 每 3 秒自动刷新一次列表，模拟实时效果
                 setInterval(fetchOrders, 3000);
             });
 
-            return { orders, riderId, grabOrder, createOrder };
+            return { orders, riderId, grabOrder, createOrder, aiOrder }; // 记得返回 aiOrder
         }
     }).mount('#app');
 </script>

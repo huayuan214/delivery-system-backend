@@ -11,7 +11,7 @@ spring:
   # ======== 新增的大模型配置 ========
   ai:
     openai:
-      api-key: sk-12345678
+      api-key: ${DEEPSEEK_API_KEY:sk-23457872abs}
       base-url: https://api.deepseek.com
       chat:
         options:

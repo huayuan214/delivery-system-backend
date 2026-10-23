@@ -55,4 +55,10 @@ public class OrderController {
     public String complete(@PathVariable Long orderId, @RequestParam Long riderId) {
         return orderService.completeOrder(orderId, riderId);
     }
+
+    @PostMapping("/ai-chat")
+    public String aiChat(@RequestParam String message) {
+        // 直接调用 AiService 的 Agent 方法
+        return aiService.chatAndExecute(message);
+    }
 }
