@@ -4,12 +4,12 @@ import com.delivery.delivery.mapper.OrderMapper;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.script.DefaultRedisScript;
-import org.springframework.scheduling.annotation.Scheduled; // 加了这行
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
-import java.util.List; // 加了这行
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
@@ -31,6 +31,7 @@ public class OrderService {
         Boolean locked = redisTemplate.opsForValue()
                 .setIfAbsent(lockKey, lockValue, 10, TimeUnit.SECONDS);
 
+        // 如果没抢到锁，直接返回错误提示
         if (Boolean.FALSE.equals(locked)) {
             return "手慢了，请重试";
         }
@@ -69,7 +70,7 @@ public class OrderService {
         List<Long> timeoutOrderIds = orderMapper.selectTimeoutOrders();
         if (timeoutOrderIds != null && !timeoutOrderIds.isEmpty()) {
             for (Long orderId : timeoutOrderIds) {
-                // 这里可以复用之前的 Redis 锁逻辑，保证释放时的并发安全
+                // 这里复用之前的 Redis 锁逻辑，保证释放时的并发安全
                 String lockKey = "lock:order:" + orderId;
                 String lockValue = UUID.randomUUID().toString();
                 Boolean locked = redisTemplate.opsForValue()
@@ -78,8 +79,6 @@ public class OrderService {
                 if (Boolean.TRUE.equals(locked)) {
                     try {
                         // 释放订单：状态改回 0，清空骑手
-                        // 注意：为了省事，直接在这里写个 mapper 更新。
-                        // 真实业务里这里应该用带条件的 UPDATE 兜底。
                         orderMapper.releaseOrder(orderId);
                         System.out.println("订单 " + orderId + " 超时，已自动释放");
                     } finally {

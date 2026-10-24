@@ -72,27 +72,34 @@
         setup() {
             const orders = ref([]);
             const riderId = ref(Math.floor(Math.random() * 100) + 1);
-            const baseUrl = 'http://localhost:8080/order';
+            const baseUrl = window.location.origin + '/order';
 
-            // 获取待接单列表
+            // 【优化1】获取待接单列表（加时间戳，解决浏览器缓存导致“幽灵订单”的问题）
             const fetchOrders = async () => {
                 try {
-                    const res = await fetch(`${baseUrl}/list`);
+                    // 时间戳让浏览器每次都去请求后端的最新数据
+                    const res = await fetch(`${baseUrl}/list?t=${new Date().getTime()}`);
                     orders.value = await res.json();
                 } catch (e) {
                     console.error("请求失败", e);
                 }
             };
 
-            // 抢单
+            // 【优化2】抢单（针对成功/失败给出明确提示，并立刻刷新列表）
             const grabOrder = async (orderId) => {
                 try {
                     const res = await fetch(`${baseUrl}/grab/${orderId}?riderId=${riderId.value}`, { method: 'POST' });
                     const msg = await res.text();
-                    alert(msg);
-                    fetchOrders();
+
+                    if (msg.includes("抢单成功")) {
+                        alert("🎉 抢单成功！");
+                    } else {
+                        alert("❌ " + msg); // 如果是“订单已被抢”或“手慢了”
+                    }
+                    fetchOrders(); // 无论成功失败，立刻刷新，把被抢的单子从页面抹掉
                 } catch (e) {
                     console.error("请求失败", e);
+                    alert("网络异常，请重试");
                 }
             };
 
